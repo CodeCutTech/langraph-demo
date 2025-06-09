@@ -7,7 +7,7 @@ A multi-agent system built with LangGraph that simulates an investment committee
 This system demonstrates true agentic behavior where three AI agents debate and make investment decisions:
 
 - **🐂 Bull Agent**: Finds positive reasons to buy stocks
-- **🐻 Bear Agent**: Finds negative reasons to avoid stocks  
+- **🐻 Bear Agent**: Finds negative reasons to avoid stocks
 - **🎯 Chairman Agent**: Makes final investment decisions after hearing both sides
 
 ## 🚀 Features
@@ -30,8 +30,8 @@ investment-committee/
 │   └── agents.py            # Agent and supervisor creation
 ├── main.py                  # Command-line interface
 ├── requirements.txt         # Python dependencies
-├── .env.example            # Environment variables template
-└── README.md               # This file
+├── .env.example             # Environment variables template
+└── README.md                # This file
 ```
 
 ## 🛠️ Installation
@@ -44,11 +44,15 @@ investment-committee/
 
 2. **Install dependencies**
 
+   Install dependencies using [uv](https://github.com/astral-sh/uv), a fast Python package installer and resolver:
+
    ```bash
-   pip install -r requirements.txt
+   uv sync
    ```
 
 3. **Set up environment variables**
+
+   Next, create an `.env` file and populate it with your API keys from [OpenAI](https://platform.openai.com/) and [Tavily](https://www.tavily.com/).
 
    ```bash
    cp .env.example .env
@@ -57,8 +61,16 @@ investment-committee/
 
 4. **Run the application**
 
+   Run the application with the `python` command:
+
    ```bash
    python main.py
+   ```
+
+   or with uv:
+
+   ```bash
+   uv run main.py
    ```
 
 ## 💡 Usage

@@ -6,6 +6,25 @@ load_dotenv()
 
 web_search = TavilySearch(max_results=3)
 
+
+def search_and_extract_signals(
+    stock_symbol: str, query: str, keywords: list[str], prefix: str, default_msg: str
+) -> str:
+    """Generic function to search and extract signals based on keywords"""
+    results = web_search.invoke(query)
+
+    signals = []
+    for result in results:
+        content = result.get("content", "")
+        if any(word in content.lower() for word in keywords):
+            signals.append(f"• {result.get('title', 'News')}: {content[:200]}...")
+
+    if signals:
+        return f"{prefix} for {stock_symbol}:\n" + "\n".join(signals[:2])
+    else:
+        return f"{prefix} {stock_symbol}: {default_msg}"
+
+
 # ===================================== #
 #  BULL AGENT TOOLS (Optimistic/Buy)   #
 # ===================================== #
@@ -14,43 +33,17 @@ web_search = TavilySearch(max_results=3)
 def find_positive_news(stock_symbol: str):
     """Search for positive news and developments about a stock"""
     query = f"{stock_symbol} stock positive news earnings growth revenue profit upgrade"
-    results = web_search.invoke(query)
-
-    # Extract key positive points
-    positive_signals = []
-    for result in results:
-        content = result.get("content", "")
-        if any(
-            word in content.lower()
-            for word in [
-                "profit",
-                "growth",
-                "upgrade",
-                "beat",
-                "strong",
-                "positive",
-                "bullish",
-            ]
-        ):
-            positive_signals.append(
-                f"• {result.get('title', 'News')}: {content[:200]}..."
-            )
-
-    if positive_signals:
-        return f"🐂 POSITIVE SIGNALS for {stock_symbol}:\n" + "\n".join(
-            positive_signals[:2]
-        )
-    else:
-        return f"🐂 {stock_symbol}: Limited positive news found, but that could mean it's undervalued!"
+    keywords = ["profit", "growth", "upgrade", "beat", "strong", "positive", "bullish"]
+    prefix = "🐂 POSITIVE SIGNALS"
+    default = "Limited positive news found, but that could mean it's undervalued!"
+    return search_and_extract_signals(stock_symbol, query, keywords, prefix, default)
 
 
 def calculate_growth_potential(stock_symbol: str):
     """Calculate basic growth metrics and bullish indicators"""
-    # Search for financial metrics
     query = f"{stock_symbol} stock price earnings revenue growth rate market cap"
     results = web_search.invoke(query)
 
-    # Extract numbers and metrics (simplified)
     growth_indicators = []
     for result in results:
         content = result.get("content", "").lower()
@@ -81,36 +74,20 @@ def calculate_growth_potential(stock_symbol: str):
 def find_negative_news(stock_symbol: str):
     """Search for negative news and risks about a stock"""
     query = f"{stock_symbol} stock negative news risks decline losses downgrade warning"
-    results = web_search.invoke(query)
-
-    # Extract key negative points
-    negative_signals = []
-    for result in results:
-        content = result.get("content", "")
-        if any(
-            word in content.lower()
-            for word in [
-                "loss",
-                "decline",
-                "risk",
-                "warning",
-                "downgrade",
-                "weak",
-                "negative",
-                "bearish",
-                "concern",
-            ]
-        ):
-            negative_signals.append(
-                f"• {result.get('title', 'News')}: {content[:200]}..."
-            )
-
-    if negative_signals:
-        return f"🐻 WARNING SIGNALS for {stock_symbol}:\n" + "\n".join(
-            negative_signals[:2]
-        )
-    else:
-        return f"🐻 {stock_symbol}: No major red flags found, but market volatility always poses risks!"
+    keywords = [
+        "loss",
+        "decline",
+        "risk",
+        "warning",
+        "downgrade",
+        "weak",
+        "negative",
+        "bearish",
+        "concern",
+    ]
+    prefix = "🐻 WARNING SIGNALS"
+    default = "No major red flags found, but market volatility always poses risks!"
+    return search_and_extract_signals(stock_symbol, query, keywords, prefix, default)
 
 
 def assess_market_risks(stock_symbol: str):
@@ -118,7 +95,6 @@ def assess_market_risks(stock_symbol: str):
     query = f"{stock_symbol} stock market risks volatility debt competition regulatory concerns"
     results = web_search.invoke(query)
 
-    # Look for risk factors
     risk_factors = []
     for result in results:
         content = result.get("content", "").lower()
@@ -156,44 +132,46 @@ def assess_market_risks(stock_symbol: str):
 def get_current_market_sentiment(stock_symbol: str):
     """Get overall market sentiment and recent performance"""
     query = f"{stock_symbol} stock current price today market sentiment analyst rating"
-    results = web_search.invoke(query)
+    keywords = ["price", "trading", "market", "analyst"]
+    prefix = "📊 CURRENT MARKET DATA"
+    default = "Market data limited - need more information for decision"
 
+    results = web_search.invoke(query)
     sentiment_data = []
     for result in results:
         content = result.get("content", "")
         title = result.get("title", "")
-
-        # Look for current price info
-        if any(
-            word in (title + content).lower()
-            for word in ["price", "trading", "market", "analyst"]
-        ):
+        if any(word in (title + content).lower() for word in keywords):
             sentiment_data.append(f"• {title}: {content[:150]}...")
 
     if sentiment_data:
-        return f"📊 CURRENT MARKET DATA for {stock_symbol}:\n" + "\n".join(
-            sentiment_data[:2]
-        )
+        return f"{prefix} for {stock_symbol}:\n" + "\n".join(sentiment_data[:2])
     else:
-        return f"📊 {stock_symbol}: Market data limited - need more information for decision"
+        return f"{prefix} {stock_symbol}: {default}"
 
 
 def make_investment_decision(stock_symbol: str, bull_points: str, bear_points: str):
     """Make final investment recommendation based on bull and bear arguments"""
-    # Simple scoring based on argument strength
-    bull_score = len(bull_points.split("•")) if "•" in bull_points else 1
-    bear_score = len(bear_points.split("•")) if "•" in bear_points else 1
 
-    # Look for strong signals in the arguments
-    strong_bull_signals = any(
-        word in bull_points.lower()
-        for word in ["growth", "profit", "upgrade", "strong"]
+    def count_points(points: str) -> int:
+        return len(points.split("•")) if "•" in points else 1
+
+    def check_signals(text: str, keywords: list[str]) -> bool:
+        return any(word in text.lower() for word in keywords)
+
+    # Score calculation
+    bull_score = count_points(bull_points)
+    bear_score = count_points(bear_points)
+
+    # Signal detection
+    strong_bull_signals = check_signals(
+        bull_points, ["growth", "profit", "upgrade", "strong"]
     )
-    strong_bear_signals = any(
-        word in bear_points.lower()
-        for word in ["risk", "decline", "warning", "concern"]
+    strong_bear_signals = check_signals(
+        bear_points, ["risk", "decline", "warning", "concern"]
     )
 
+    # Decision logic
     if bull_score > bear_score and strong_bull_signals:
         recommendation = "BUY"
         confidence = "High"
